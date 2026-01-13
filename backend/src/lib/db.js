@@ -12,13 +12,22 @@ export const connectDB = async () => {
       mongoUri = mongoUri.replace("localhost", "127.0.0.1");
     }
     
-    // Use directConnection option to avoid replica set issues and force direct connection
-    const conn = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+    // Check if it's a local connection (non-SRV) or Atlas (SRV)
+    const isLocalConnection = !mongoUri.startsWith("mongodb+srv://");
+    
+    // Connection options
+    const connectionOptions = {
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 10000,
-      directConnection: true, // Force direct connection (not replica set)
-    });
+    };
+    
+    // Only use directConnection for local MongoDB (not for Atlas SRV URIs)
+    if (isLocalConnection) {
+      connectionOptions.directConnection = true;
+    }
+    
+    const conn = await mongoose.connect(mongoUri, connectionOptions);
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
     console.log("MongoDB connection error:", error.message);
