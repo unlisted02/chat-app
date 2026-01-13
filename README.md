@@ -34,10 +34,21 @@ A full-stack chat application enabling instant messaging with real-time updates 
 # Clone the repository
 git clone https://github.com/unlisted02/chat-app.git
 cd chat-app/backend
+
+# Install dependencies
 npm install
+
+# Set up environment variables
+# Copy .env.example to .env and fill in your values
+cp .env.example .env
+# Edit .env with your actual configuration
+
+# Run in development mode
 npm run dev
-# Or for production: npm start (runs node src/index.js)
+# Or for production: npm start
 ```
+
+**Environment Variables:** See `backend/.env.example` for all required environment variables.
 
 ### Frontend
 
@@ -71,7 +82,7 @@ npm start
 
 ## Author
 
-Gowtham Balaji  
+Unlisted 
 
 ---
 
