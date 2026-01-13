@@ -1,17 +1,13 @@
 services:
   - type: web
     name: chat-app
-    env: node
+    runtime: node
+    plan: free
     buildCommand: cd backend && npm install && npm run build
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        fromService:
-          type: web
-          name: chat-app
-          property: port
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
