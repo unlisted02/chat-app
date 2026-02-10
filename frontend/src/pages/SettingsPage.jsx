@@ -36,7 +36,7 @@ const SettingsPage = () => {
                   <div className="rounded bg-neutral"></div>
                 </div>
               </div>
-              <span className="text-[11px] font-medium truncate w-full text-center">
+              <span className="text-[11px] font-medium truncate w-full text-center text-base-content">
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </span>
             </button>

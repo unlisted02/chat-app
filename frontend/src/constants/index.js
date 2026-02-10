@@ -1,3 +1,9 @@
+/** Theme names that use a dark palette (for EmojiPicker light/dark) */
+export const DARK_THEMES = new Set([
+  "dark", "synthwave", "retro", "cyberpunk", "halloween", "forest", "black",
+  "luxury", "dracula", "business", "night", "coffee", "dim", "nord", "sunset",
+]);
+
 export const THEMES = [
   "light",
   "dark",

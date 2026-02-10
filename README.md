@@ -54,8 +54,8 @@ npm run dev
 
 ```bash
 cd frontend
-npm install
-npm start
+bun install
+bun dev
 ```
 
 > Make sure MongoDB is running and configured properly, and update environment variables if necessary.

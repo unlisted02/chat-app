@@ -11,7 +11,7 @@ const MessageSkeleton = () => {
 
           <div
             className={`chat-bubble ${
-              idx % 2 === 0 ? "bg-gray-300" : "bg-green-600"
+              idx % 2 === 0 ? "bg-base-300" : "bg-primary"
             }`}
           >
             <div className="h-16 w-[200px] skeleton" />

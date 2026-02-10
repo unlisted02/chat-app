@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
+import { useThemeStore } from "../store/useThemeStore";
+import { DARK_THEMES } from "../constants";
 import { Image, Send, X, Smile } from "lucide-react";
 import toast from "react-hot-toast";
 import EmojiPicker from "emoji-picker-react";
@@ -11,6 +13,8 @@ const MessageInput = () => {
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const { sendMessage } = useChatStore();
+  const { theme } = useThemeStore();
+  const emojiPickerTheme = DARK_THEMES.has(theme) ? "dark" : "light";
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -83,7 +87,7 @@ const MessageInput = () => {
             <img
               src={imagePreview}
               alt="Preview"
-              className="object-cover w-20 h-20 border rounded-lg border-zinc-700"
+              className="object-cover w-20 h-20 border rounded-lg border-base-300"
             />
             <button
               onClick={removeImage}
@@ -114,7 +118,7 @@ const MessageInput = () => {
             >
               <EmojiPicker
                 onEmojiClick={onEmojiClick}
-                theme="dark"
+                theme={emojiPickerTheme}
                 width={350}
                 height={400}
               />
@@ -135,7 +139,7 @@ const MessageInput = () => {
             <button
               type="button"
               className={`btn btn-circle btn-ghost btn-xs sm:btn-sm ${
-                imagePreview ? "text-emerald-500" : "text-zinc-400"
+                imagePreview ? "text-primary" : "text-base-content/60"
               }`}
               onClick={() => fileInputRef.current?.click()}
               title="Add image"
