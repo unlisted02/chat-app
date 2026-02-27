@@ -7,6 +7,8 @@ export const useChatStore = create((set, get) => ({
   messages: [],
   users: [],
   selectedUser: null,
+  replyTo: null,
+  unreadCounts: {},
   isUsersLoading: false,
   isMessagesLoading: false,
 
@@ -19,6 +21,15 @@ export const useChatStore = create((set, get) => ({
       toast.error(error.response.data.message);
     } finally {
       set({ isUsersLoading: false });
+    }
+  },
+
+  fetchUnreadCounts: async () => {
+    try {
+      const res = await axiosInstance.get("/messages/unread-counts");
+      set({ unreadCounts: res.data });
+    } catch (error) {
+      // silent
     }
   },
 
@@ -40,6 +51,40 @@ export const useChatStore = create((set, get) => ({
       set({ messages: [...messages, res.data] });
     } catch (error) {
       toast.error(error.response.data.message);
+    }
+  },
+
+  setReplyTo: (message) => set({ replyTo: message }),
+  clearReplyTo: () => set({ replyTo: null }),
+
+  updateMessage: async (messageId, payload) => {
+    try {
+      const res = await axiosInstance.patch(`/messages/${messageId}`, payload);
+      set({
+        messages: get().messages.map((m) => (m._id === messageId ? res.data : m)),
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to update message");
+    }
+  },
+
+  deleteMessage: async (messageId) => {
+    try {
+      await axiosInstance.delete(`/messages/${messageId}`);
+      set({
+        messages: get().messages.filter((m) => m._id !== messageId),
+      });
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to delete message");
+    }
+  },
+
+  clearChat: async (userId) => {
+    try {
+      await axiosInstance.delete(`/messages/with/${userId}`);
+      set({ messages: [] });
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to clear chat");
     }
   },
 

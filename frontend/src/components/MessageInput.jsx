@@ -2,36 +2,43 @@ import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useThemeStore } from "../store/useThemeStore";
 import { DARK_THEMES } from "../constants";
-import { Image, Send, X, Smile } from "lucide-react";
+import { Image, Send, X, Smile, Paperclip } from "lucide-react";
 import toast from "react-hot-toast";
 import EmojiPicker from "emoji-picker-react";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [fileInfo, setFileInfo] = useState(null); // non-image files (pdf, doc, etc.)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const { sendMessage, replyTo, clearReplyTo } = useChatStore();
   const { theme } = useThemeStore();
   const emojiPickerTheme = DARK_THEMES.has(theme) ? "dark" : "light";
 
-  const handleImageChange = (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
-      return;
-    }
-
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result);
+      if (file.type.startsWith("image/")) {
+        setImagePreview(reader.result);
+        setFileInfo(null);
+      } else {
+        setFileInfo({
+          data: reader.result,
+          name: file.name,
+          type: file.type,
+        });
+        setImagePreview(null);
+      }
     };
     reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
     setImagePreview(null);
+    setFileInfo(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -63,17 +70,34 @@ const MessageInput = () => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!text.trim() && !imagePreview) return;
+    if (!text.trim() && !imagePreview && !fileInfo) return;
 
     try {
-      await sendMessage({
+      const payload = {
         text: text.trim(),
-        image: imagePreview,
-      });
+      };
+
+      if (imagePreview) {
+        payload.image = imagePreview;
+      }
+
+      if (fileInfo) {
+        payload.file = fileInfo.data;
+        payload.fileName = fileInfo.name;
+        payload.fileType = fileInfo.type;
+      }
+
+      if (replyTo?._id) {
+        payload.replyTo = replyTo._id;
+      }
+
+      await sendMessage(payload);
 
       setText("");
       setImagePreview(null);
+      setFileInfo(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (replyTo) clearReplyTo();
     } catch (error) {
       console.error("Failed to send message:", error);
     }
@@ -81,6 +105,24 @@ const MessageInput = () => {
 
   return (
     <div className="w-full p-4">
+      {replyTo && (
+        <div className="mb-3 flex items-start justify-between gap-2 rounded-lg bg-base-200 px-3 py-2 text-xs">
+          <div className="flex-1">
+            <p className="font-medium mb-0.5">Replying to</p>
+            <p className="line-clamp-2">
+              {replyTo.text || replyTo.fileName || "Attachment"}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs btn-circle"
+            onClick={clearReplyTo}
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
+
       {imagePreview && (
         <div className="flex items-center gap-2 mb-3">
           <div className="relative">
@@ -98,6 +140,25 @@ const MessageInput = () => {
               <X className="size-3" />
             </button>
           </div>
+        </div>
+      )}
+
+      {fileInfo && !imagePreview && (
+        <div className="flex items-center justify-between gap-2 mb-3 rounded-lg border border-base-300 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Paperclip className="size-4" />
+            <div className="flex flex-col">
+              <span className="font-medium break-all">{fileInfo.name}</span>
+              <span className="opacity-70">{fileInfo.type}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs btn-circle"
+            onClick={removeImage}
+          >
+            <X className="size-3" />
+          </button>
         </div>
       )}
 
@@ -139,21 +200,21 @@ const MessageInput = () => {
             <button
               type="button"
               className={`btn btn-circle btn-ghost btn-xs sm:btn-sm ${
-                imagePreview ? "text-primary" : "text-base-content/60"
+                imagePreview || fileInfo ? "text-primary" : "text-base-content/60"
               }`}
               onClick={() => fileInputRef.current?.click()}
-              title="Add image"
+              title="Add attachment"
             >
-              <Image size={18} />
+              <Paperclip size={18} />
             </button>
           </div>
 
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
             className="hidden"
             ref={fileInputRef}
-            onChange={handleImageChange}
+            onChange={handleFileChange}
           />
         </div>
 
