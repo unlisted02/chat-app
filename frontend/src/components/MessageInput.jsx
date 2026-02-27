@@ -2,42 +2,67 @@ import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useThemeStore } from "../store/useThemeStore";
 import { DARK_THEMES } from "../constants";
-import { Image, Send, X, Smile } from "lucide-react";
+import { Send, X, Smile, Paperclip } from "lucide-react";
 import toast from "react-hot-toast";
 import EmojiPicker from "emoji-picker-react";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
+  const [fileInfo, setFileInfo] = useState(null); // non-image files (pdf, doc, etc.)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const { sendMessage } = useChatStore();
+  const inputRef = useRef(null);
+  const {
+    sendMessage,
+    replyTo,
+    clearReplyTo,
+    editingMessage,
+    clearEditingMessage,
+    updateMessage,
+    selectedUser,
+  } = useChatStore();
   const { theme } = useThemeStore();
   const emojiPickerTheme = DARK_THEMES.has(theme) ? "dark" : "light";
 
-  const handleImageChange = (e) => {
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    if (!file) return;
+
+    const MAX_SIZE_MB = 20;
+    const maxBytes = MAX_SIZE_MB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error(`File is too large. Maximum size is ${MAX_SIZE_MB}MB.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImagePreview(reader.result);
+      if (file.type.startsWith("image/")) {
+        setImagePreview(reader.result);
+        setFileInfo(null);
+      } else {
+        setFileInfo({
+          data: reader.result,
+          name: file.name,
+          type: file.type,
+        });
+        setImagePreview(null);
+      }
     };
     reader.readAsDataURL(file);
   };
 
   const removeImage = () => {
     setImagePreview(null);
+    setFileInfo(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const onEmojiClick = (emojiData) => {
     setText((prevText) => prevText + emojiData.emoji);
-    setShowEmojiPicker(false);
   };
 
   // Close emoji picker when clicking outside
@@ -61,26 +86,117 @@ const MessageInput = () => {
     };
   }, [showEmojiPicker]);
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!text.trim() && !imagePreview) return;
+  // Focus the input when a chat is opened/changed
+  useEffect(() => {
+    if (selectedUser && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [selectedUser]);
+
+  // When entering or leaving edit mode, sync the input and attachments
+  useEffect(() => {
+    if (editingMessage) {
+      setText(editingMessage.text || "");
+      setImagePreview(null);
+      setFileInfo(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } else {
+      setText("");
+    }
+  }, [editingMessage]);
+
+  const handleSendMessage = async () => {
+    if (!text.trim() && !imagePreview && !fileInfo) return;
 
     try {
-      await sendMessage({
-        text: text.trim(),
-        image: imagePreview,
-      });
+      if (editingMessage) {
+        const newText = text.trim();
+        if (!newText) return;
+        await updateMessage(editingMessage._id, { text: newText });
+        clearEditingMessage();
+        setText("");
+      } else {
+        const payload = {
+          text: text.trim(),
+        };
 
-      setText("");
-      setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+        if (imagePreview) {
+          payload.image = imagePreview;
+        }
+
+        if (fileInfo) {
+          payload.file = fileInfo.data;
+          payload.fileName = fileInfo.name;
+          payload.fileType = fileInfo.type;
+        }
+
+        if (replyTo?._id) {
+          payload.replyTo = replyTo._id;
+        }
+
+        await sendMessage(payload);
+
+        setText("");
+        setImagePreview(null);
+        setFileInfo(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (replyTo) clearReplyTo();
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
     }
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSendMessage();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   return (
     <div className="w-full p-4">
+      {editingMessage && (
+        <div className="mb-3 flex items-start justify-between gap-2 rounded-lg bg-warning/10 px-3 py-2 text-xs border border-warning/40">
+          <div className="flex-1">
+            <p className="font-medium mb-0.5">Editing message</p>
+            <p className="line-clamp-2">
+              {editingMessage.text || editingMessage.fileName || "Message"}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs btn-circle"
+            onClick={clearEditingMessage}
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
+
+      {replyTo && (
+        <div className="mb-3 flex items-start justify-between gap-2 rounded-lg bg-base-200 px-3 py-2 text-xs">
+          <div className="flex-1">
+            <p className="font-medium mb-0.5">Replying to</p>
+            <p className="line-clamp-2">
+              {replyTo.text || replyTo.fileName || "Attachment"}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs btn-circle"
+            onClick={clearReplyTo}
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
+
       {imagePreview && (
         <div className="flex items-center gap-2 mb-3">
           <div className="relative">
@@ -101,14 +217,34 @@ const MessageInput = () => {
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
+      {fileInfo && !imagePreview && (
+        <div className="flex items-center justify-between gap-2 mb-3 rounded-lg border border-base-300 px-3 py-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Paperclip className="size-4" />
+            <div className="flex flex-col">
+              <span className="font-medium break-all">{fileInfo.name}</span>
+              <span className="opacity-70">{fileInfo.type}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs btn-circle"
+            onClick={removeImage}
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
         <div className="relative flex-1">
-          <input
-            type="text"
-            className="w-full pr-24 rounded-lg input input-bordered input-sm sm:input-md"
+          <textarea
+            ref={inputRef}
+            className="w-full pr-24 rounded-lg input input-bordered input-sm sm:input-md resize-none min-h-[40px] max-h-32 py-2"
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
 
           {showEmojiPicker && (
@@ -139,21 +275,21 @@ const MessageInput = () => {
             <button
               type="button"
               className={`btn btn-circle btn-ghost btn-xs sm:btn-sm ${
-                imagePreview ? "text-primary" : "text-base-content/60"
+                imagePreview || fileInfo ? "text-primary" : "text-base-content/60"
               }`}
               onClick={() => fileInputRef.current?.click()}
-              title="Add image"
+              title="Add attachment"
             >
-              <Image size={18} />
+              <Paperclip size={18} />
             </button>
           </div>
 
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
             className="hidden"
             ref={fileInputRef}
-            onChange={handleImageChange}
+            onChange={handleFileChange}
           />
         </div>
 
