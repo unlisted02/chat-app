@@ -115,13 +115,23 @@ export const searchMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image, file, fileName, fileType, replyTo } = req.body;
+    const {
+      text,
+      image,
+      imageUrl: existingImageUrl,
+      file,
+      fileUrl: existingFileUrl,
+      fileName,
+      fileType,
+      replyTo,
+    } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
-    let imageUrl;
-    let fileUrl;
-    if (image) {
+    let imageUrl = existingImageUrl || null;
+    let fileUrl = existingFileUrl || null;
+
+    if (image && !imageUrl) {
       // Upload base64 image to cloudinary
       const uploadResponse = await cloudinary.uploader.upload(image, {
         folder: "chat-app",
@@ -130,7 +140,7 @@ export const sendMessage = async (req, res) => {
       imageUrl = uploadResponse.secure_url;
     }
 
-    if (file) {
+    if (file && !fileUrl) {
       const uploadResponse = await cloudinary.uploader.upload(file, {
         folder: "chat-app-files",
         resource_type: "raw",

@@ -58,6 +58,14 @@ export const useChatStore = create((set, get) => ({
   setReplyTo: (message) => set({ replyTo: message }),
   clearReplyTo: () => set({ replyTo: null }),
 
+  forwardMessage: async (targetUserId, messageData) => {
+    try {
+      await axiosInstance.post(`/messages/send/${targetUserId}`, messageData);
+    } catch (error) {
+      toast.error(error.response?.data?.error || "Failed to forward message");
+    }
+  },
+
   setEditingMessage: (message) => set({ editingMessage: message }),
   clearEditingMessage: () => set({ editingMessage: null }),
 

@@ -22,7 +22,9 @@ const MESSAGE_EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const ChatContainer = () => {
   const {
     messages,
+    users,
     getMessages,
+    getUsers,
     isMessagesLoading,
     selectedUser,
     subscribeToMessages,
@@ -32,11 +34,14 @@ const ChatContainer = () => {
     sendMessage,
     setReplyTo,
     setEditingMessage,
+    forwardMessage,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
   const [menuOpenForId, setMenuOpenForId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
+  const [messageToForward, setMessageToForward] = useState(null);
 
   useEffect(() => {
     getMessages(selectedUser._id);
@@ -45,6 +50,12 @@ const ChatContainer = () => {
 
     return () => unsubscribeFromMessages();
   }, [selectedUser._id, getMessages, subscribeToMessages, unsubscribeFromMessages]);
+
+  useEffect(() => {
+    if (isForwardModalOpen && users.length === 0) {
+      getUsers();
+    }
+  }, [isForwardModalOpen, users.length, getUsers]);
 
   useEffect(() => {
     if (messageEndRef.current && messages) {
@@ -87,13 +98,43 @@ const ChatContainer = () => {
     setMenuOpenForId(null);
   };
 
-  const handleForward = async (message) => {
-    if (!message.text) {
+  const handleForward = (message) => {
+    if (!message.text && !message.image && !message.fileUrl) {
       setMenuOpenForId(null);
       return;
     }
-    await sendMessage({ text: message.text });
+    setMessageToForward(message);
+    setIsForwardModalOpen(true);
     setMenuOpenForId(null);
+  };
+
+  const handleForwardToUser = async (user) => {
+    if (!messageToForward) return;
+
+    const payload = {};
+
+    if (messageToForward.text) {
+      payload.text = messageToForward.text;
+    }
+
+    if (messageToForward.image) {
+      payload.imageUrl = messageToForward.image;
+    }
+
+    if (messageToForward.fileUrl) {
+      payload.fileUrl = messageToForward.fileUrl;
+      if (messageToForward.fileName) payload.fileName = messageToForward.fileName;
+      if (messageToForward.fileType) payload.fileType = messageToForward.fileType;
+    }
+
+    await forwardMessage(user._id, payload);
+    setIsForwardModalOpen(false);
+    setMessageToForward(null);
+  };
+
+  const closeForwardModal = () => {
+    setIsForwardModalOpen(false);
+    setMessageToForward(null);
   };
 
   if (isMessagesLoading) {
@@ -275,6 +316,45 @@ const ChatContainer = () => {
       </div>
 
       <MessageInput />
+
+      {isForwardModalOpen && messageToForward && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-sm p-4 rounded-lg shadow-lg bg-base-100">
+            <h3 className="mb-1 text-sm font-semibold">Forward message</h3>
+            <p className="mb-3 text-xs opacity-80 line-clamp-2">
+              {messageToForward.text ||
+                messageToForward.fileName ||
+                (messageToForward.image ? "Image" : "Message")}
+            </p>
+            <div className="max-h-64 mb-3 overflow-y-auto divide-y divide-base-300">
+              {users
+                .filter((u) => u._id !== authUser._id)
+                .map((user) => (
+                  <button
+                    key={user._id}
+                    type="button"
+                    className="flex items-center justify-between w-full px-2 py-2 text-left hover:bg-base-200"
+                    onClick={() => handleForwardToUser(user)}
+                  >
+                    <span className="text-sm">{user.fullName || user.username || user.email}</span>
+                  </button>
+                ))}
+              {users.filter((u) => u._id !== authUser._id).length === 0 && (
+                <div className="py-4 text-xs text-center opacity-70">No contacts available</div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={closeForwardModal}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
