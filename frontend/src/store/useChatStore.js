@@ -101,18 +101,29 @@ export const useChatStore = create((set, get) => ({
   },
 
   subscribeToMessages: () => {
-    const { selectedUser } = get();
-    if (!selectedUser) return;
-
     const socket = useAuthStore.getState().socket;
+    if (!socket) return;
 
     socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelectedUser) return;
+      const state = get();
+      const { selectedUser, messages, unreadCounts } = state;
 
-      set({
-        messages: [...get().messages, newMessage],
-      });
+      const isForOpenChat = selectedUser && newMessage.senderId === selectedUser._id;
+
+      if (isForOpenChat) {
+        set({
+          messages: [...messages, newMessage],
+        });
+      } else {
+        const senderId = newMessage.senderId;
+        const current = unreadCounts[senderId] || 0;
+        set({
+          unreadCounts: {
+            ...unreadCounts,
+            [senderId]: current + 1,
+          },
+        });
+      }
     });
 
     socket.on("messageUpdated", (updatedMessage) => {
@@ -135,9 +146,24 @@ export const useChatStore = create((set, get) => ({
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
-     socket.off("messageUpdated");
-     socket.off("messageDeleted");
+    socket.off("messageUpdated");
+    socket.off("messageDeleted");
   },
 
-  setSelectedUser: (selectedUser) => set({ selectedUser }),
+  setSelectedUser: (selectedUser) =>
+    set((state) => {
+      if (!selectedUser) {
+        return { selectedUser: null };
+      }
+
+      const nextUnread = {
+        ...state.unreadCounts,
+        [selectedUser._id]: 0,
+      };
+
+      return {
+        selectedUser,
+        unreadCounts: nextUnread,
+      };
+    }),
 }));

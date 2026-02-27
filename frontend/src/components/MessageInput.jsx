@@ -13,6 +13,7 @@ const MessageInput = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
+  const inputRef = useRef(null);
   const {
     sendMessage,
     replyTo,
@@ -20,6 +21,7 @@ const MessageInput = () => {
     editingMessage,
     clearEditingMessage,
     updateMessage,
+    selectedUser,
   } = useChatStore();
   const { theme } = useThemeStore();
   const emojiPickerTheme = DARK_THEMES.has(theme) ? "dark" : "light";
@@ -73,6 +75,13 @@ const MessageInput = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showEmojiPicker]);
+
+  // Focus the input when a chat is opened/changed
+  useEffect(() => {
+    if (selectedUser && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [selectedUser]);
 
   // When entering or leaving edit mode, sync the input and attachments
   useEffect(() => {
@@ -210,6 +219,7 @@ const MessageInput = () => {
         <div className="relative flex-1">
           <input
             type="text"
+            ref={inputRef}
             className="w-full pr-24 rounded-lg input input-bordered input-sm sm:input-md"
             placeholder="Type a message..."
             value={text}
