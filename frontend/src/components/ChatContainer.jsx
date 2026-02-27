@@ -18,6 +18,33 @@ import {
 } from "lucide-react";
 
 const MESSAGE_EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+const renderTextWithLinks = (text, isOwn) => {
+  if (!text) return null;
+  const parts = text.split(URL_REGEX);
+  return parts.map((part, idx) => {
+    if (URL_REGEX.test(part)) {
+      URL_REGEX.lastIndex = 0;
+      return (
+        <a
+          key={idx}
+          href={part}
+          target="_blank"
+          rel="noreferrer"
+          className={
+            isOwn
+              ? "underline text-primary-content break-words"
+              : "underline text-primary break-words"
+          }
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+};
 
 const ChatContainer = () => {
   const {
@@ -240,7 +267,11 @@ const ChatContainer = () => {
                           {message.fileName || "Attachment"}
                         </a>
                       )}
-                      {message.text && <p>{message.text}</p>}
+                      {message.text && (
+                        <p className="whitespace-pre-wrap break-words">
+                          {renderTextWithLinks(message.text, isOwn)}
+                        </p>
+                      )}
                       {(message.isStarred || message.isPinned) && (
                         <div className="mt-1 flex gap-1 text-[10px] opacity-70 self-end">
                           {message.isPinned && <Pin className="w-3 h-3" />}
@@ -262,7 +293,7 @@ const ChatContainer = () => {
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     {menuOpenForId === message._id && (
-                      <div className="absolute z-20 mt-1 w-40 rounded-lg bg-base-100 shadow-lg border border-base-300 right-0">
+                      <div className="absolute z-20 bottom-full mb-1 w-40 rounded-lg bg-base-100 shadow-lg border border-base-300 right-0">
                         <ul className="menu menu-sm p-1">
                           {canEdit && (
                             <li>

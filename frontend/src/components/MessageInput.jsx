@@ -105,8 +105,7 @@ const MessageInput = () => {
     }
   }, [editingMessage]);
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
+  const handleSendMessage = async () => {
     if (!text.trim() && !imagePreview && !fileInfo) return;
 
     try {
@@ -145,6 +144,18 @@ const MessageInput = () => {
       }
     } catch (error) {
       console.error("Failed to send message:", error);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    handleSendMessage();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
@@ -225,15 +236,15 @@ const MessageInput = () => {
         </div>
       )}
 
-      <form onSubmit={handleSendMessage} className="relative flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
         <div className="relative flex-1">
-          <input
-            type="text"
+          <textarea
             ref={inputRef}
-            className="w-full pr-24 rounded-lg input input-bordered input-sm sm:input-md"
+            className="w-full pr-24 rounded-lg input input-bordered input-sm sm:input-md resize-none min-h-[40px] max-h-32 py-2"
             placeholder="Type a message..."
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
 
           {showEmojiPicker && (

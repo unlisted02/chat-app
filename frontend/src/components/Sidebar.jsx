@@ -92,6 +92,12 @@ const Sidebar = () => {
     ? users.filter((user) => onlineUsers.includes(user._id))
     : users;
 
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+    return bTime - aTime;
+  });
+
   if (isUsersLoading) return <SidebarSkeleton />;
 
   return (
@@ -165,7 +171,7 @@ const Sidebar = () => {
       </div>
 
       <div className="overflow-y-auto w-full py-3">
-        {filteredUsers.map((user) => {
+        {sortedUsers.map((user) => {
           const unread = unreadCounts[user._id] || 0;
           const isActive = selectedUser?._id === user._id;
 

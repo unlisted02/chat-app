@@ -11,7 +11,49 @@ export const getUsersForSidebar = async (req, res) => {
     const loggedInUserId = req.user._id;
     const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
 
-    res.status(200).json(filteredUsers);
+    const lastMessages = await Message.aggregate([
+      {
+        $match: {
+          $or: [{ senderId: loggedInUserId }, { receiverId: loggedInUserId }],
+        },
+      },
+      {
+        $addFields: {
+          otherUserId: {
+            $cond: [
+              { $eq: ["$senderId", loggedInUserId] },
+              "$receiverId",
+              "$senderId",
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$otherUserId",
+          lastMessageAt: { $max: "$createdAt" },
+        },
+      },
+    ]);
+
+    const lastMap = {};
+    lastMessages.forEach((row) => {
+      lastMap[row._id.toString()] = row.lastMessageAt;
+    });
+
+    const usersWithMeta = filteredUsers
+      .map((u) => {
+        const obj = u.toObject();
+        obj.lastMessageAt = lastMap[u._id.toString()] || null;
+        return obj;
+      })
+      .sort((a, b) => {
+        const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return bTime - aTime;
+      });
+
+    res.status(200).json(usersWithMeta);
   } catch (error) {
     console.error("Error in getUsersForSidebar: ", error.message);
     res.status(500).json({ error: "Internal server error" });
@@ -119,6 +161,27 @@ export const searchMessages = async (req, res) => {
     res.status(200).json(messages);
   } catch (error) {
     console.log("Error in searchMessages controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getStarredMessages = async (req, res) => {
+  try {
+    const myId = req.user._id;
+
+    const messages = await Message.find({
+      isStarred: true,
+      deletedAt: { $exists: false },
+      hiddenFor: { $ne: myId },
+      $or: [{ senderId: myId }, { receiverId: myId }],
+    })
+      .sort({ createdAt: -1 })
+      .populate("senderId", "fullName profilePic")
+      .populate("receiverId", "fullName profilePic");
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.log("Error in getStarredMessages controller: ", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };

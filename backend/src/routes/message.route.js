@@ -9,6 +9,7 @@ import {
   searchMessages,
   sendMessage,
   updateMessage,
+  getStarredMessages,
 } from "../controllers/message.controller.js";
 
 const router = express.Router();
@@ -16,6 +17,7 @@ const router = express.Router();
 router.get("/users", protectRoute, getUsersForSidebar);
 router.get("/unread-counts", protectRoute, getUnreadCounts);
 router.get("/search", protectRoute, searchMessages);
+router.get("/starred", protectRoute, getStarredMessages);
 router.get("/:id", protectRoute, getMessages);
 
 router.post("/send/:id", protectRoute, sendMessage);

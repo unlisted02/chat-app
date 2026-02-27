@@ -15,6 +15,8 @@ export const useChatStore = create((set, get) => ({
   searchResults: [],
   isSearchLoading: false,
   globalSearchQuery: "",
+  starredMessages: [],
+  isStarredLoading: false,
 
   searchMessages: async (q, userId = null) => {
     const query = (q || "").trim();
@@ -37,6 +39,17 @@ export const useChatStore = create((set, get) => ({
   clearSearchResults: () => set({ searchResults: [], globalSearchQuery: "" }),
 
   setGlobalSearchQuery: (query) => set({ globalSearchQuery: query || "" }),
+
+  fetchStarredMessages: async () => {
+    set({ isStarredLoading: true });
+    try {
+      const res = await axiosInstance.get("/messages/starred");
+      set({ starredMessages: res.data || [], isStarredLoading: false });
+    } catch (error) {
+      set({ starredMessages: [], isStarredLoading: false });
+      toast.error(error.response?.data?.error || "Failed to load starred messages");
+    }
+  },
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -71,10 +84,16 @@ export const useChatStore = create((set, get) => ({
     }
   },
   sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
+    const { selectedUser, messages, users } = get();
     try {
       const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: [...messages, res.data] });
+      const newMessage = res.data;
+      set({
+        messages: [...messages, newMessage],
+        users: users.map((u) =>
+          u._id === selectedUser._id ? { ...u, lastMessageAt: newMessage.createdAt } : u
+        ),
+      });
     } catch (error) {
       toast.error(error.response.data.message);
     }
@@ -131,13 +150,16 @@ export const useChatStore = create((set, get) => ({
 
     socket.on("newMessage", (newMessage) => {
       const state = get();
-      const { selectedUser, messages, unreadCounts } = state;
+      const { selectedUser, messages, unreadCounts, users } = state;
 
       const isForOpenChat = selectedUser && newMessage.senderId === selectedUser._id;
 
       if (isForOpenChat) {
         set({
           messages: [...messages, newMessage],
+          users: users.map((u) =>
+            u._id === selectedUser._id ? { ...u, lastMessageAt: newMessage.createdAt } : u
+          ),
         });
       } else {
         const senderId = newMessage.senderId;
@@ -147,6 +169,9 @@ export const useChatStore = create((set, get) => ({
             ...unreadCounts,
             [senderId]: current + 1,
           },
+          users: users.map((u) =>
+            u._id === senderId ? { ...u, lastMessageAt: newMessage.createdAt } : u
+          ),
         });
       }
     });
