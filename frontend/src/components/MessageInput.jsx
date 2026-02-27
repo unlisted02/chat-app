@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { useThemeStore } from "../store/useThemeStore";
 import { DARK_THEMES } from "../constants";
-import { Image, Send, X, Smile, Paperclip } from "lucide-react";
+import { Send, X, Smile, Paperclip } from "lucide-react";
 import toast from "react-hot-toast";
 import EmojiPicker from "emoji-picker-react";
 
@@ -28,6 +28,16 @@ const MessageInput = () => {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+
+    const MAX_SIZE_MB = 20;
+    const maxBytes = MAX_SIZE_MB * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error(`File is too large. Maximum size is ${MAX_SIZE_MB}MB.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       if (file.type.startsWith("image/")) {

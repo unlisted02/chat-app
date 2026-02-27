@@ -31,7 +31,6 @@ const ChatContainer = () => {
     unsubscribeFromMessages,
     updateMessage,
     deleteMessage,
-    sendMessage,
     setReplyTo,
     setEditingMessage,
     forwardMessage,
@@ -234,7 +233,9 @@ const ChatContainer = () => {
                           href={message.fileUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="link link-primary break-all mb-1"
+                          className={`break-all mb-1 underline ${
+                            isOwn ? "text-primary-content" : "link link-primary"
+                          }`}
                         >
                           {message.fileName || "Attachment"}
                         </a>

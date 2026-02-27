@@ -150,7 +150,7 @@ export const sendMessage = async (req, res) => {
     if (file && !fileUrl) {
       const uploadResponse = await cloudinary.uploader.upload(file, {
         folder: "chat-app-files",
-        resource_type: "raw",
+      resource_type: "auto",
         public_id: fileName || undefined,
       });
       fileUrl = uploadResponse.secure_url;

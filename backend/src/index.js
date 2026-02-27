@@ -16,7 +16,12 @@ dotenv.config();
 const PORT = process.env.PORT || 5001;
 const __dirname = path.resolve();
 
-app.use(express.json());
+// Allow larger JSON bodies for file uploads (up to 25MB)
+app.use(
+  express.json({
+    limit: "25mb",
+  })
+);
 app.use(cookieParser());
 app.use(
   cors({
