@@ -24,9 +24,14 @@ export const getMessages = async (req, res) => {
     const myId = req.user._id;
 
     const messages = await Message.find({
-      $or: [
-        { senderId: myId, receiverId: userToChatId },
-        { senderId: userToChatId, receiverId: myId },
+      $and: [
+        {
+          $or: [
+            { senderId: myId, receiverId: userToChatId },
+            { senderId: userToChatId, receiverId: myId },
+          ],
+        },
+        { hiddenFor: { $ne: myId } },
       ],
     });
 
@@ -56,6 +61,7 @@ export const getUnreadCounts = async (req, res) => {
         $match: {
           receiverId: myId,
           seen: false,
+          hiddenFor: { $ne: myId },
         },
       },
       {
@@ -103,6 +109,7 @@ export const searchMessages = async (req, res) => {
     const messages = await Message.find({
       ...baseMatch,
       deletedAt: { $exists: false },
+      hiddenFor: { $ne: myId },
       text: { $regex: regex },
     }).sort({ createdAt: -1 });
 
@@ -239,8 +246,13 @@ export const deleteMessage = async (req, res) => {
       return res.status(404).json({ error: "Message not found" });
     }
 
-    if (message.senderId.toString() !== userId) {
-      return res.status(403).json({ error: "You can only delete your own messages" });
+    if (
+      message.senderId.toString() !== userId &&
+      message.receiverId.toString() !== userId
+    ) {
+      return res
+        .status(403)
+        .json({ error: "You can only delete messages in your own conversations" });
     }
 
     message.deletedAt = new Date();
@@ -263,12 +275,15 @@ export const clearChat = async (req, res) => {
     const { id: userToChatId } = req.params;
     const myId = req.user._id;
 
-    await Message.deleteMany({
-      $or: [
-        { senderId: myId, receiverId: userToChatId },
-        { senderId: userToChatId, receiverId: myId },
-      ],
-    });
+    await Message.updateMany(
+      {
+        $or: [
+          { senderId: myId, receiverId: userToChatId },
+          { senderId: userToChatId, receiverId: myId },
+        ],
+      },
+      { $addToSet: { hiddenFor: myId } }
+    );
 
     res.status(200).json({ success: true });
   } catch (error) {

@@ -44,6 +44,21 @@ const ChatContainer = () => {
   const [messageToForward, setMessageToForward] = useState(null);
 
   useEffect(() => {
+    if (!menuOpenForId) return;
+
+    const handleClickOutside = (event) => {
+      if (!event.target.closest("[data-message-menu]")) {
+        setMenuOpenForId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpenForId]);
+
+  useEffect(() => {
     getMessages(selectedUser._id);
 
     subscribeToMessages();
@@ -236,7 +251,7 @@ const ChatContainer = () => {
                 </div>
 
                 {!isDeleted && (
-                  <div className="relative">
+                  <div className="relative" data-message-menu>
                     <button
                       className="btn btn-ghost btn-xs"
                       onClick={() =>
@@ -293,17 +308,15 @@ const ChatContainer = () => {
                               {message.isPinned ? "Unpin" : "Pin"}
                             </button>
                           </li>
-                          {isOwn && (
-                            <li>
-                              <button
-                                onClick={() => handleDelete(message._id)}
-                                className="text-error"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                Delete
-                              </button>
-                            </li>
-                          )}
+                          <li>
+                            <button
+                              onClick={() => handleDelete(message._id)}
+                              className="text-error"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Delete
+                            </button>
+                          </li>
                         </ul>
                       </div>
                     )}
