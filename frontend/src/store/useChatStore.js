@@ -12,6 +12,31 @@ export const useChatStore = create((set, get) => ({
   unreadCounts: {},
   isUsersLoading: false,
   isMessagesLoading: false,
+  searchResults: [],
+  isSearchLoading: false,
+  globalSearchQuery: "",
+
+  searchMessages: async (q, userId = null) => {
+    const query = (q || "").trim();
+    if (!query) {
+      set({ searchResults: [], isSearchLoading: false });
+      return;
+    }
+    set({ isSearchLoading: true });
+    try {
+      const params = new URLSearchParams({ q: query });
+      if (userId) params.set("userId", userId);
+      const res = await axiosInstance.get(`/messages/search?${params.toString()}`);
+      set({ searchResults: res.data || [], isSearchLoading: false });
+    } catch (error) {
+      set({ searchResults: [], isSearchLoading: false });
+      toast.error(error.response?.data?.error || "Search failed");
+    }
+  },
+
+  clearSearchResults: () => set({ searchResults: [], globalSearchQuery: "" }),
+
+  setGlobalSearchQuery: (query) => set({ globalSearchQuery: query || "" }),
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -30,7 +55,7 @@ export const useChatStore = create((set, get) => ({
       const res = await axiosInstance.get("/messages/unread-counts");
       set({ unreadCounts: res.data });
     } catch (error) {
-      // silent
+      toast.error(error.response.data.message);
     }
   },
 

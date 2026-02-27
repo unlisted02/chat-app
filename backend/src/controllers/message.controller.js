@@ -110,7 +110,10 @@ export const searchMessages = async (req, res) => {
       ...baseMatch,
       deletedAt: { $exists: false },
       hiddenFor: { $ne: myId },
-      text: { $regex: regex },
+      $or: [
+        { text: { $regex: regex } },
+        { fileName: { $regex: regex } },
+      ],
     }).sort({ createdAt: -1 });
 
     res.status(200).json(messages);

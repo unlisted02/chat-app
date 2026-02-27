@@ -88,11 +88,13 @@ const ChatHeader = ({ searchTerm, onSearchTermChange, onCopyChat }) => {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 opacity-60" />
+            <div className="flex items-center gap-2 flex-1">
+              <span className="inline-flex items-center justify-center rounded-full bg-base-200 w-7 h-7">
+                <Search className="w-4 h-4 text-base-content/70" />
+              </span>
               <input
                 type="text"
-                className="input input-bordered input-xs sm:input-sm w-full pl-8"
+                className="input input-bordered input-xs sm:input-sm w-full rounded-lg bg-base-200 border-base-300 focus:border-primary focus:outline-none placeholder:text-base-content/50"
                 placeholder="Search in this chat..."
                 value={searchTerm}
                 onChange={(e) => onSearchTermChange(e.target.value)}
