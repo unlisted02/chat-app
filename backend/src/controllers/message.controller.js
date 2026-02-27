@@ -169,7 +169,6 @@ export const updateMessage = async (req, res) => {
     const { id } = req.params;
     const userId = req.user._id.toString();
     const { text, isStarred, isPinned } = req.body;
-
     const message = await Message.findById(id);
     if (!message) {
       return res.status(404).json({ error: "Message not found" });
@@ -177,6 +176,12 @@ export const updateMessage = async (req, res) => {
 
     if (message.senderId.toString() !== userId) {
       return res.status(403).json({ error: "You can only edit your own messages" });
+    }
+
+    if (message.seen) {
+      return res
+        .status(400)
+        .json({ error: "You cannot edit a message after the recipient has seen it" });
     }
 
     const now = Date.now();

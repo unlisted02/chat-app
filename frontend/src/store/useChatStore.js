@@ -8,6 +8,7 @@ export const useChatStore = create((set, get) => ({
   users: [],
   selectedUser: null,
   replyTo: null,
+  editingMessage: null,
   unreadCounts: {},
   isUsersLoading: false,
   isMessagesLoading: false,
@@ -57,6 +58,9 @@ export const useChatStore = create((set, get) => ({
   setReplyTo: (message) => set({ replyTo: message }),
   clearReplyTo: () => set({ replyTo: null }),
 
+  setEditingMessage: (message) => set({ editingMessage: message }),
+  clearEditingMessage: () => set({ editingMessage: null }),
+
   updateMessage: async (messageId, payload) => {
     try {
       const res = await axiosInstance.patch(`/messages/${messageId}`, payload);
@@ -102,11 +106,29 @@ export const useChatStore = create((set, get) => ({
         messages: [...get().messages, newMessage],
       });
     });
+
+    socket.on("messageUpdated", (updatedMessage) => {
+      set({
+        messages: get().messages.map((m) => (m._id === updatedMessage._id ? updatedMessage : m)),
+      });
+    });
+
+    socket.on("messageDeleted", (payload) => {
+      const deletedId = payload?._id;
+      if (!deletedId) return;
+      set({
+        messages: get().messages.map((m) =>
+          m._id === deletedId ? { ...m, deletedAt: new Date().toISOString() } : m
+        ),
+      });
+    });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
     socket.off("newMessage");
+     socket.off("messageUpdated");
+     socket.off("messageDeleted");
   },
 
   setSelectedUser: (selectedUser) => set({ selectedUser }),

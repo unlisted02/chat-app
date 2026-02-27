@@ -13,7 +13,14 @@ const MessageInput = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef(null);
   const emojiPickerRef = useRef(null);
-  const { sendMessage, replyTo, clearReplyTo } = useChatStore();
+  const {
+    sendMessage,
+    replyTo,
+    clearReplyTo,
+    editingMessage,
+    clearEditingMessage,
+    updateMessage,
+  } = useChatStore();
   const { theme } = useThemeStore();
   const emojiPickerTheme = DARK_THEMES.has(theme) ? "dark" : "light";
 
@@ -44,7 +51,6 @@ const MessageInput = () => {
 
   const onEmojiClick = (emojiData) => {
     setText((prevText) => prevText + emojiData.emoji);
-    setShowEmojiPicker(false);
   };
 
   // Close emoji picker when clicking outside
@@ -68,36 +74,56 @@ const MessageInput = () => {
     };
   }, [showEmojiPicker]);
 
+  // When entering or leaving edit mode, sync the input and attachments
+  useEffect(() => {
+    if (editingMessage) {
+      setText(editingMessage.text || "");
+      setImagePreview(null);
+      setFileInfo(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } else {
+      setText("");
+    }
+  }, [editingMessage]);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() && !imagePreview && !fileInfo) return;
 
     try {
-      const payload = {
-        text: text.trim(),
-      };
+      if (editingMessage) {
+        const newText = text.trim();
+        if (!newText) return;
+        await updateMessage(editingMessage._id, { text: newText });
+        clearEditingMessage();
+        setText("");
+      } else {
+        const payload = {
+          text: text.trim(),
+        };
 
-      if (imagePreview) {
-        payload.image = imagePreview;
+        if (imagePreview) {
+          payload.image = imagePreview;
+        }
+
+        if (fileInfo) {
+          payload.file = fileInfo.data;
+          payload.fileName = fileInfo.name;
+          payload.fileType = fileInfo.type;
+        }
+
+        if (replyTo?._id) {
+          payload.replyTo = replyTo._id;
+        }
+
+        await sendMessage(payload);
+
+        setText("");
+        setImagePreview(null);
+        setFileInfo(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (replyTo) clearReplyTo();
       }
-
-      if (fileInfo) {
-        payload.file = fileInfo.data;
-        payload.fileName = fileInfo.name;
-        payload.fileType = fileInfo.type;
-      }
-
-      if (replyTo?._id) {
-        payload.replyTo = replyTo._id;
-      }
-
-      await sendMessage(payload);
-
-      setText("");
-      setImagePreview(null);
-      setFileInfo(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      if (replyTo) clearReplyTo();
     } catch (error) {
       console.error("Failed to send message:", error);
     }
@@ -105,6 +131,24 @@ const MessageInput = () => {
 
   return (
     <div className="w-full p-4">
+      {editingMessage && (
+        <div className="mb-3 flex items-start justify-between gap-2 rounded-lg bg-warning/10 px-3 py-2 text-xs border border-warning/40">
+          <div className="flex-1">
+            <p className="font-medium mb-0.5">Editing message</p>
+            <p className="line-clamp-2">
+              {editingMessage.text || editingMessage.fileName || "Message"}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs btn-circle"
+            onClick={clearEditingMessage}
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      )}
+
       {replyTo && (
         <div className="mb-3 flex items-start justify-between gap-2 rounded-lg bg-base-200 px-3 py-2 text-xs">
           <div className="flex-1">

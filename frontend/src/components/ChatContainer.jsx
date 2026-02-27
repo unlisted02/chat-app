@@ -17,6 +17,8 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
+const MESSAGE_EDIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
 const ChatContainer = () => {
   const {
     messages,
@@ -29,6 +31,7 @@ const ChatContainer = () => {
     deleteMessage,
     sendMessage,
     setReplyTo,
+    setEditingMessage,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
@@ -63,11 +66,9 @@ const ChatContainer = () => {
     setMenuOpenForId(null);
   };
 
-  const handleEdit = async (message) => {
-    const nextText = window.prompt("Edit message", message.text || "");
-    if (nextText !== null && nextText.trim() !== message.text) {
-      await updateMessage(message._id, { text: nextText.trim() });
-    }
+  const handleEdit = (message) => {
+    setReplyTo(null);
+    setEditingMessage(message);
     setMenuOpenForId(null);
   };
 
@@ -119,6 +120,17 @@ const ChatContainer = () => {
         {filteredMessages.map((message) => {
           const isOwn = message.senderId === authUser._id;
           const isDeleted = !!message.deletedAt;
+          const replyMessage =
+            message.replyTo && messages.find((m) => m._id === message.replyTo);
+          const createdAt = message.createdAt ? new Date(message.createdAt) : null;
+          const withinEditWindow =
+            !!createdAt && Date.now() - createdAt.getTime() <= MESSAGE_EDIT_WINDOW_MS;
+          const canEdit =
+            isOwn &&
+            !isDeleted &&
+            !!message.text &&
+            !message.seen &&
+            withinEditWindow;
 
           return (
             <div
@@ -144,6 +156,16 @@ const ChatContainer = () => {
                     <p className="italic opacity-70">This message was deleted</p>
                   ) : (
                     <>
+                      {replyMessage && (
+                        <div className="mb-1 px-2 py-1 rounded bg-base-300/70 text-xs border-l-4 border-primary max-w-xs">
+                          <p className="mb-0.5 text-[10px] font-semibold opacity-80">
+                            Replying to
+                          </p>
+                          <p className="line-clamp-2 break-words">
+                            {replyMessage.text || replyMessage.fileName || "Attachment"}
+                          </p>
+                        </div>
+                      )}
                       {message.image && (
                         <img
                           src={message.image}
@@ -185,7 +207,7 @@ const ChatContainer = () => {
                     {menuOpenForId === message._id && (
                       <div className="absolute z-20 mt-1 w-40 rounded-lg bg-base-100 shadow-lg border border-base-300 right-0">
                         <ul className="menu menu-sm p-1">
-                          {isOwn && (
+                          {canEdit && (
                             <li>
                               <button onClick={() => handleEdit(message)}>
                                 <Edit2 className="w-3 h-3" />
