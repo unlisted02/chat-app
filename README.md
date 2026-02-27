@@ -7,12 +7,22 @@ A full-stack chat application enabling instant messaging with real-time updates 
 
 ## Features
 
-- Real-time messaging with Socket.io  
+- Real-time 1:1 messaging with Socket.io  
 - User authentication with JWT and bcrypt  
 - Persistent message storage using MongoDB  
-- Responsive UI for seamless experience  
-- Handles multiple active users efficiently  
-- Secure login and data handling  
+- Per-message actions: **edit, reply, forward, copy, star, pin, delete**  
+- Edit constraints: sender-only, within 1 hour, and only while the message is unseen  
+- WhatsApp-like reply UI (quoted context above the replied message)  
+- Forward messages to any contact via a contact picker  
+- File and image attachments (Cloudinary-backed, including PDFs/docs)  
+- Global search across all chats + in-chat search bar  
+- Per-chat unread badges, cleared when you open the chat  
+- Per-user “clear chat” (local only) vs soft delete for everyone  
+- Starred messages overview page  
+- Member-since information on profile page  
+- Multiline input (Shift+Enter for new line, Enter to send)  
+- Emoji picker that stays open while you select multiple emojis  
+- Auto-linking of URLs in messages  
 
 ---
 
@@ -65,9 +75,11 @@ bun dev
 ## Usage
 
 1. Register or log in to your account  
-2. Join or create chat rooms  
-3. Send and receive messages in real time  
-4. Enjoy secure, persistent, and responsive chat  
+2. Select a contact from the sidebar  
+3. Send and receive messages in real time (text, images, docs)  
+4. Use the 3‑dot menu on any message to edit, reply, forward, star, pin, copy, or delete  
+5. Use global search (sidebar) or in‑chat search (chat header) to find messages  
+6. View all your starred messages from the **Starred** page in the navbar  
 
 ---
 
