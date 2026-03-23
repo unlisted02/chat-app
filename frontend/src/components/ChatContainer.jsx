@@ -220,7 +220,7 @@ const ChatContainer = () => {
               className={`chat ${isOwn ? "chat-end" : "chat-start"}`}
               ref={messageEndRef}
             >
-              <div className="mb-1 chat-header flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-1 chat-header">
                 <time className="ml-1 text-xs opacity-50">
                   {formatMessageTime(message.createdAt)}
                 </time>
@@ -228,7 +228,7 @@ const ChatContainer = () => {
                   <span className="text-[10px] opacity-60">(edited)</span>
                 )}
               </div>
-              <div className="flex items-end gap-1 max-w-full">
+              <div className="flex items-end max-w-full gap-1">
                 <div
                   className={`chat-bubble flex flex-col ${
                     isOwn ? "bg-primary text-primary-content" : "bg-base-200 text-base-content"
@@ -239,11 +239,11 @@ const ChatContainer = () => {
                   ) : (
                     <>
                       {replyMessage && (
-                        <div className="mb-1 px-2 py-1 rounded bg-base-300/70 text-xs border-l-4 border-primary max-w-xs">
+                        <div className="max-w-xs px-2 py-1 mb-1 text-xs border-l-4 rounded bg-base-300/70 border-primary">
                           <p className="mb-0.5 text-[10px] font-semibold opacity-80">
                             Replying to
                           </p>
-                          <p className="line-clamp-2 break-words">
+                          <p className="break-words line-clamp-2">
                             {replyMessage.text || replyMessage.fileName || "Attachment"}
                           </p>
                         </div>
@@ -268,7 +268,7 @@ const ChatContainer = () => {
                         </a>
                       )}
                       {message.text && (
-                        <p className="whitespace-pre-wrap break-words">
+                        <p className="break-words whitespace-pre-wrap">
                           {renderTextWithLinks(message.text, isOwn)}
                         </p>
                       )}
@@ -293,8 +293,8 @@ const ChatContainer = () => {
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     {menuOpenForId === message._id && (
-                      <div className="absolute z-20 bottom-full mb-1 w-40 rounded-lg bg-base-100 shadow-lg border border-base-300 right-0">
-                        <ul className="menu menu-sm p-1">
+                      <div className="absolute right-0 z-20 w-40 mb-1 border rounded-lg shadow-lg bottom-full bg-base-100 border-base-300">
+                        <ul className="p-1 menu menu-sm">
                           {canEdit && (
                             <li>
                               <button onClick={() => handleEdit(message)}>
@@ -371,7 +371,7 @@ const ChatContainer = () => {
                 messageToForward.fileName ||
                 (messageToForward.image ? "Image" : "Message")}
             </p>
-            <div className="max-h-64 mb-3 overflow-y-auto divide-y divide-base-300">
+            <div className="mb-3 overflow-y-auto divide-y max-h-64 divide-base-300">
               {users
                 .filter((u) => u._id !== authUser._id)
                 .map((user) => (
